@@ -1,0 +1,243 @@
+{
+  "name": "My workflow 2",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "d47aaa79-20f5-4793-993c-0a683a0ade65",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "url": "https://dolarapi.com/v1/dolares/oficial",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        224,
+        0
+      ],
+      "id": "9cdc04d7-cee3-466d-bde3-70d2114eec97",
+      "name": "DolarOficial"
+    },
+    {
+      "parameters": {
+        "url": "https://dolarapi.com/v1/dolares/bolsa",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        448,
+        0
+      ],
+      "id": "97513d3b-34dd-4239-8e68-6aa8a6818f35",
+      "name": "dolarMEP"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9eeb5f64-4eff-4e26-84da-d72424f3a5f6",
+              "name": "oficial",
+              "value": "={{ $('DolarOficial').item.json.venta }}",
+              "type": "number"
+            },
+            {
+              "id": "946d657b-ebc8-466a-927a-551763063fcd",
+              "name": "mep",
+              "value": "={{ $json.venta }}",
+              "type": "number"
+            },
+            {
+              "id": "9cb47bd4-445c-4458-8b8e-c695972f980b",
+              "name": "brecha",
+              "value": "={{ Math.round((($json.venta / $('DolarOficial').item.json.venta) - 1) * 1000) / 10 }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        672,
+        0
+      ],
+      "id": "ea2a6567-bb75-4e4e-bb81-66d1e5e81707",
+      "name": "DatosBrecha"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4f9dcc9b-dd40-4c9c-8102-7c3529d321e0",
+              "name": "mensaje",
+              "value": "=💵 Brecha MEP: {{ $json.brecha }}% | Oficial ${{ $json.oficial }} | MEP ${{ $json.mep }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        896,
+        0
+      ],
+      "id": "63d14b63-2c8e-4dcd-ab6b-215d97174fb5",
+      "name": "mensaje"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "d87bf87f-e3ce-483c-8311-000a00ca8690",
+              "leftValue": "={{ $json.brecha }}",
+              "rightValue": 10,
+              "operator": {
+                "type": "number",
+                "operation": "lte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1120,
+        0
+      ],
+      "id": "bddb0790-7049-4c25-9dbd-e5e99ccc3a22",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "chatId": "",
+        "text": "={{ $json.mensaje }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1392,
+        -16
+      ],
+      "id": "4e8453e4-9430-4148-add1-ec592efacff7",
+      "name": "Send a text message",
+      "webhookId": "b4097ccc-7fe9-4109-b969-3d94cd8f13a1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "DolarOficial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DolarOficial": {
+      "main": [
+        [
+          {
+            "node": "dolarMEP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "dolarMEP": {
+      "main": [
+        [
+          {
+            "node": "DatosBrecha",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DatosBrecha": {
+      "main": [
+        [
+          {
+            "node": "mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "mensaje": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "5ab8681d-73b7-4c9c-a054-c7fca73c1239",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "nodeGroups": [],
+  "id": "IYPMLGUPdoQUZ7CC",
+  "tags": []
+}
